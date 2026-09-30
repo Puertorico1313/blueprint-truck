@@ -748,6 +748,12 @@ footer { padding-block: 22px 10px; color: var(--muted); font-size: 13px; border-
       l2.querySelector("small").textContent = CFG.relevo.fotos;
       ck2.appendChild(i2); ck2.appendChild(l2); rel.appendChild(ck2);
 
+      var ck3 = document.createElement("div"); ck3.className = "check";
+      var i3 = document.createElement("input"); i3.type = "checkbox"; i3.id = "ck-lista";
+      var l3 = document.createElement("label"); l3.setAttribute("for", "ck-lista");
+      l3.innerHTML = "Quiero enterarme de los eventos y lanzamientos de Blueprint.<small>Opcional. Nada de spam: solo lo que de verdad importa.</small>";
+      ck3.appendChild(i3); ck3.appendChild(l3); rel.appendChild(ck3);
+
       var fr = document.createElement("div"); fr.className = "firma-row";
       var fc = document.createElement("div");
       var fl = document.createElement("label"); fl.className = "f"; fl.textContent = "Firma: escribe tu nombre completo";
@@ -788,7 +794,7 @@ footer { padding-block: 22px 10px; color: var(--muted); font-size: 13px; border-
         var ok = i1.checked && firma.length >= 4 && firma.indexOf(" ") > 0;
         fpv.textContent = firma;
         relevoAceptado = {
-          ok: ok, firma: firma, fotos: i2.checked,
+          ok: ok, firma: firma, fotos: i2.checked, lista: i3.checked,
           fecha: hoyISO(), version: CFG.relevo.version
         };
         pagos.className = ok ? "" : "bloqueado";
@@ -806,65 +812,51 @@ footer { padding-block: 22px 10px; color: var(--muted); font-size: 13px; border-
       }
       i1.addEventListener("change", repasarRelevo);
       i2.addEventListener("change", repasarRelevo);
+      i3.addEventListener("change", repasarRelevo);
       fi.addEventListener("input", repasarRelevo);
       var waLink = null;
       var stripeLink = null;
-
-      // Registro por correo
-      if (CFG.formspree) {
-        var reg = document.createElement("div"); reg.className = "pay-opt";
-        var gh2 = document.createElement("h3"); gh2.textContent = "Paso 1: manda tu registro";
-        reg.appendChild(gh2);
-        var gp2 = document.createElement("p");
-        gp2.textContent = "Esto nos llega por correo con tus sesiones, tu relevo firmado y tu referencia. Después haces el pago.";
-        reg.appendChild(gp2);
-        var gb2 = document.createElement("button"); gb2.className = "cta"; gb2.type = "button"; gb2.textContent = "Enviar registro";
-        var gs2 = document.createElement("p"); gs2.className = "note"; gs2.style.margin = "10px 0 0";
-        gb2.addEventListener("click", function () {
-          gb2.disabled = true; gs2.textContent = "Enviando...";
-          var cuerpo = {
-            referencia: refActual,
-            nombre: relevoAceptado.firma,
-            correo: iEmail.value.trim(),
-            telefono: iTel.value.trim(),
-            sesiones: carrito.map(function (it) {
-              return fechaLarga(it.fecha) + " " + etiquetaHora(it.hora) + " — " + it.ubic.nombre + ", " + it.ubic.municipio;
-            }).join(" | "),
-            total: dinero(totalCarrito()),
-            relevo: "aceptado " + relevoAceptado.fecha + " (" + CFG.relevo.version + ")",
-            contenido: relevoAceptado.fotos ? "autoriza" : "no autoriza"
-          };
-          fetch(CFG.formspree, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Accept": "application/json" },
-            body: JSON.stringify(cuerpo)
-          }).then(function (r) {
-            if (!r.ok) throw new Error("rechazado");
-            gb2.textContent = "Registro enviado";
-            gs2.textContent = "Listo. Ahora haz el pago y te confirmamos.";
-          }).catch(function () {
-            gb2.disabled = false;
-            gs2.textContent = "No se pudo enviar desde aquí. Mándalo por WhatsApp, abajo, que lleva la misma información.";
-          });
-        });
-        reg.appendChild(gb2); reg.appendChild(gs2);
-        pagos.appendChild(reg);
-      }
 
       // Tarjeta
       var tarjeta = document.createElement("div"); tarjeta.className = "pay-opt";
       var th = document.createElement("h3"); th.textContent = "Tarjeta o Apple Pay";
       tarjeta.appendChild(th);
       var tp = document.createElement("p");
-      if (CFG.stripe.conectado && CFG.stripe.enlace) {
-        tp.innerHTML = "En la página de Stripe pon <b>cantidad: " + carrito.length + "</b> (" + carrito.length +
-          (carrito.length === 1 ? " sesión" : " sesiones") + " × " + dinero(CFG.precio) + " = " + dinero(totalCarrito()) +
-          "). Tu reserva se confirma cuando el pago se verifique.";
+      if (true) {
+        tp.textContent = "Pagas " + dinero(totalCarrito()) + " por " + carrito.length +
+          (carrito.length === 1 ? " sesión" : " sesiones") + ". El monto lo calcula el sistema; no hay nada que escribir.";
         tarjeta.appendChild(tp);
-        var ta = document.createElement("a"); ta.className = "cta"; ta.href = CFG.stripe.enlace; ta.target = "_blank"; ta.rel = "noopener";
-        ta.textContent = "Pagar con tarjeta";
-        tarjeta.appendChild(ta);
-        stripeLink = ta;
+        var ta = document.createElement("button"); ta.type = "button"; ta.className = "cta";
+        ta.textContent = "Pagar " + dinero(totalCarrito()) + " con tarjeta";
+        var taMsg = document.createElement("p"); taMsg.className = "note"; taMsg.style.margin = "10px 0 0";
+        ta.addEventListener("click", function () {
+          ta.disabled = true; taMsg.textContent = "Abriendo el pago seguro...";
+          fetch("/api/checkout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              referencia: refActual,
+              nombre: relevoAceptado.firma,
+              correo: iEmail.value.trim(),
+              telefono: iTel.value.trim(),
+              relevo: "aceptado " + relevoAceptado.fecha + " " + CFG.relevo.version,
+              contenido: relevoAceptado.fotos ? "autoriza" : "no autoriza",
+              mercadeo: relevoAceptado.lista ? "si" : "no",
+              sesiones: carrito.map(function (it) {
+                return { etiqueta: fechaLarga(it.fecha) + " " + etiquetaHora(it.hora) + " - " + it.ubic.nombre };
+              })
+            })
+          }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+            .then(function (res) {
+              if (res.ok && res.j && res.j.url) { window.location.href = res.j.url; return; }
+              throw new Error((res.j && res.j.error) || "no disponible");
+            })
+            .catch(function () {
+              ta.disabled = false;
+              taMsg.textContent = "El pago con tarjeta no está disponible en este momento. Usa ATH Móvil o escríbenos por WhatsApp.";
+            });
+        });
+        tarjeta.appendChild(ta); tarjeta.appendChild(taMsg);
       } else {
         tp.className = "pending";
         tp.textContent = "El cobro con tarjeta todavía no está conectado. Usa ATH Móvil o escríbenos por WhatsApp.";
@@ -896,19 +888,19 @@ footer { padding-block: 22px 10px; color: var(--muted); font-size: 13px; border-
 
       // WhatsApp
       var wa = document.createElement("div"); wa.className = "pay-opt";
-      var wh = document.createElement("h3"); wh.textContent = "WhatsApp";
+      var wh = document.createElement("h3"); wh.textContent = "¿Dudas?";
       wa.appendChild(wh);
-      var wp = document.createElement("p"); wp.textContent = "Mándanos el pedido y coordinamos el pago y la confirmación.";
+      var wp = document.createElement("p"); wp.textContent = "Si algo no te cuadra, escríbenos por WhatsApp antes de pagar.";
       wa.appendChild(wp);
       var wl = document.createElement("a"); wl.className = "cta";
       wl.href = "https://wa.me/" + CFG.whatsapp + "?text=" + encodeURIComponent(mensajeWhatsApp());
-      wl.target = "_blank"; wl.rel = "noopener"; wl.textContent = "Enviar pedido por WhatsApp";
+      wl.className = "ghost"; wl.target = "_blank"; wl.rel = "noopener"; wl.textContent = "Escribir por WhatsApp";
       wa.appendChild(wl);
       waLink = wl;
       pagos.appendChild(wa);
 
       var aviso = document.createElement("p"); aviso.className = "note";
-      aviso.textContent = "Tus sesiones quedan apartadas solo cuando confirmemos el pago. Hasta entonces el horario sigue disponible para otra persona.";
+      aviso.textContent = "Cuando el pago entre, te llega la confirmación por correo con tus sesiones, el spot y la hora de llegada.";
       pagos.appendChild(aviso);
 
       var avisoFirma = document.createElement("p"); avisoFirma.className = "note";
@@ -1248,6 +1240,29 @@ footer { padding-block: 22px 10px; color: var(--muted); font-size: 13px; border-
   }
 
   window.addEventListener("hashchange", function () { if (esAdmin()) abrirAdmin(); });
+
+  (function avisoPago() {
+    var q = location.search || "";
+    if (q.indexOf("pago=ok") < 0 && q.indexOf("pago=cancelado") < 0) return;
+    var ok = q.indexOf("pago=ok") >= 0;
+    var m = q.match(/ref=([^&]+)/);
+    var caja = document.createElement("div");
+    caja.style.cssText = "position:fixed; left:16px; right:16px; top:16px; z-index:50; max-width:788px; margin:0 auto; background:" +
+      (ok ? "#0F2E22" : "#2E1A0F") + "; border:1px solid " + (ok ? "#3DD68C" : "#FFC44D") +
+      "; border-radius:14px; padding:16px 18px; color:#F2F5FA";
+    var t = document.createElement("p"); t.style.cssText = "margin:0 0 6px; font-family:var(--display); text-transform:uppercase; letter-spacing:1px";
+    t.textContent = ok ? "Pago recibido" : "Pago cancelado";
+    var d = document.createElement("p"); d.style.cssText = "margin:0; font-size:14px; color:#C3CBDB";
+    d.textContent = ok
+      ? "Gracias. Tu referencia es " + (m ? decodeURIComponent(m[1]) : "") + ". Te confirmamos tus sesiones por WhatsApp."
+      : "No se completó el pago. Tus sesiones siguen en el carrito.";
+    var x = document.createElement("button"); x.type = "button"; x.className = "ghost";
+    x.style.cssText = "margin-top:10px"; x.textContent = "Cerrar";
+    x.addEventListener("click", function () { caja.remove(); history.replaceState(null, "", location.pathname); });
+    caja.appendChild(t); caja.appendChild(d); caja.appendChild(x);
+    document.body.appendChild(caja);
+    if (ok) { carrito = []; guardar(STORE_CART, carrito); render(); }
+  })();
 
   render();
   if (esAdmin()) abrirAdmin();
