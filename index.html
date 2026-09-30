@@ -343,7 +343,7 @@ footer { padding-block: 22px 10px; color: var(--muted); font-size: 13px; border-
     whatsapp: "19392735708",
     formspree: "",
     ath: { destinatario: "Blueprint Lab", handle: "", enlace: "", configurado: false },
-    stripe: { conectado: false, enlace: "" },
+    stripe: { conectado: true, enlace: "https://book.stripe.com/9B614mcMk8yO1uuehr5ZC04" },
     relevo: {
       version: "v1",
       texto: "RELEVO DE RESPONSABILIDAD Y ASUNCIÓN DE RIESGO — BLUEPRINT TRUCK (BLUEPRINT LAB)\n\n1. Participo por voluntad propia en una sesión de acondicionamiento físico al aire libre operada por Blueprint Lab.\n\n2. Declaro que estoy en condición de hacer ejercicio intenso. Si tengo alguna condición de salud, lesión, embarazo o tratamiento médico, lo consulté con mi médico antes de participar y es mi responsabilidad informarlo al coach.\n\n3. Entiendo que esto conlleva riesgos reales: lesiones musculares y articulares, caídas, golpes con el equipo, deshidratación, exposición al sol y al calor, y las condiciones propias de un espacio al aire libre. Asumo esos riesgos.\n\n4. Relevo a Blueprint Lab, al Blueprint Truck, a sus dueños, empleados y colaboradores de toda reclamación por lesión, daño o pérdida que surja de mi participación, salvo negligencia crasa.\n\n5. Me comprometo a seguir las instrucciones del coach, usar el equipo como se me indique y detenerme si siento dolor, mareo o malestar.\n\n6. Soy mayor de 18 años.\n\n7. Acepto la política de cancelación vigente del Blueprint Truck.",
@@ -369,6 +369,9 @@ footer { padding-block: 22px 10px; color: var(--muted); font-size: 13px; border-
     if (!g) return clone(CFG_BASE);
     var base = clone(CFG_BASE), k;
     for (k in g) { if (Object.prototype.hasOwnProperty.call(g, k)) base[k] = g[k]; }
+    if (!base.stripe || !base.stripe.enlace) base.stripe = clone(CFG_BASE.stripe);
+    if (!base.relevo || !base.relevo.texto) base.relevo = clone(CFG_BASE.relevo);
+    if (!base.formspree) base.formspree = CFG_BASE.formspree;
     return base;
   })();
   var carrito = leer(STORE_CART, []);
