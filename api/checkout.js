@@ -1,5 +1,4 @@
 // Crea el cobro en Stripe por el total exacto del carrito.
-// La llave vive en Vercel (STRIPE_SECRET_KEY), nunca en la pagina.
 const Stripe = require("stripe");
 
 const PRECIO_CENTAVOS = 4000;
@@ -21,6 +20,7 @@ module.exports = async (req, res) => {
     const origen = req.headers.origin || "https://truck.403data.com";
     const referencia = String(cuerpo.referencia || "").slice(0, 60);
     const correo = String(cuerpo.correo || "");
+    const claves = sesiones.map(function (s) { return String(s.clave || ""); }).filter(Boolean).join(",").slice(0, 480);
     const sesion = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: line_items,
@@ -32,6 +32,8 @@ module.exports = async (req, res) => {
         telefono: String(cuerpo.telefono || "").slice(0, 40),
         relevo: String(cuerpo.relevo || "").slice(0, 100),
         contenido: String(cuerpo.contenido || "").slice(0, 40),
+        mercadeo: String(cuerpo.mercadeo || "no").slice(0, 10),
+        claves: claves,
         sesiones: sesiones.map(function (s) { return s.etiqueta; }).join(" | ").slice(0, 480)
       },
       success_url: origen + "/?pago=ok&ref=" + encodeURIComponent(referencia),
